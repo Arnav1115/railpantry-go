@@ -1,19 +1,21 @@
 import { useState } from 'react';
-import { ShoppingCart, Plus, Minus, ArrowLeft } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, ArrowLeft, Moon, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { NightOwlBanner } from '@/components/NightOwlBanner';
 import { useInventory } from '@/hooks/useInventory';
+import { getFoodImage } from '@/lib/foodImages';
 import type { CartItem } from '@/lib/types';
 
 interface LiveMenuProps {
   onCheckout: (cart: CartItem[]) => void;
   onBack: () => void;
+  onFoodOwl: () => void;
 }
 
 const categories = ['All Items', 'Meals', 'Snacks', 'Beverages'];
 
-export function LiveMenu({ onCheckout, onBack }: LiveMenuProps) {
+export function LiveMenu({ onCheckout, onBack, onFoodOwl }: LiveMenuProps) {
   const { items, loading } = useInventory();
   const [activeCategory, setActiveCategory] = useState('All Items');
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -21,6 +23,9 @@ export function LiveMenu({ onCheckout, onBack }: LiveMenuProps) {
   const filtered = activeCategory === 'All Items' ? items : items.filter(i => i.category === activeCategory);
   const cartTotal = cart.reduce((s, c) => s + c.price * c.quantity, 0);
   const cartCount = cart.reduce((s, c) => s + c.quantity, 0);
+
+  const hour = new Date().getHours();
+  const isNight = hour >= 23 || hour < 5;
 
   const addToCart = (item: { id: string; name: string; price: number }) => {
     setCart(prev => {
@@ -43,13 +48,27 @@ export function LiveMenu({ onCheckout, onBack }: LiveMenuProps) {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-primary p-4">
         <div className="flex items-center gap-3">
-          <button onClick={onBack}><ArrowLeft className="h-5 w-5 text-primary-foreground" /></button>
+          <button onClick={onBack}><LogOut className="h-5 w-5 text-primary-foreground" /></button>
           <div className="flex-1">
             <h1 className="font-heading font-bold text-primary-foreground text-lg">Live Pantry Menu</h1>
           </div>
           <Badge className="bg-accent text-accent-foreground">Kitchen Open</Badge>
         </div>
       </div>
+
+      {/* FoodOwl Night Banner */}
+      {isNight && (
+        <button onClick={onFoodOwl} className="w-full">
+          <div className="mx-4 mt-4 bg-gradient-to-r from-[hsl(250,40%,20%)] to-[hsl(270,30%,15%)] rounded-xl p-4 flex items-center gap-3 border border-warning/30">
+            <Moon className="h-8 w-8 text-warning" />
+            <div className="text-left flex-1">
+              <p className="font-heading font-bold text-primary-foreground">🦉 FoodOwl – Night Essentials</p>
+              <p className="text-primary-foreground/60 text-xs">Tap to order water, biscuits, medicine & more</p>
+            </div>
+            <ArrowLeft className="h-5 w-5 text-warning rotate-180" />
+          </div>
+        </button>
+      )}
 
       {/* Categories */}
       <div className="flex gap-2 p-4 overflow-x-auto">
@@ -79,9 +98,14 @@ export function LiveMenu({ onCheckout, onBack }: LiveMenuProps) {
           const qty = getCartQty(item.id);
           return (
             <div key={item.id} className={`bg-card rounded-xl p-4 border border-border flex gap-4 ${outOfStock ? 'opacity-50' : ''}`}>
-              <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center text-2xl shrink-0">
-                {item.category === 'Meals' ? '🍛' : item.category === 'Beverages' ? '☕' : '🍪'}
-              </div>
+              <img
+                src={getFoodImage(item.name)}
+                alt={item.name}
+                loading="lazy"
+                width={64}
+                height={64}
+                className="w-16 h-16 rounded-lg object-cover shrink-0"
+              />
               <div className="flex-1 min-w-0">
                 <h3 className="font-heading font-semibold text-card-foreground text-sm">{item.name}</h3>
                 <div className="flex gap-2 mt-1">

@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { PnrLogin } from '@/components/passenger/PnrLogin';
 import { LiveMenu } from '@/components/passenger/LiveMenu';
+import { FoodOwl } from '@/components/passenger/FoodOwl';
 import { Checkout, OrderConfirmation } from '@/components/passenger/Checkout';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import type { CartItem, Order } from '@/lib/types';
 
-type Screen = 'login' | 'menu' | 'checkout' | 'confirmation';
+type Screen = 'login' | 'menu' | 'foodowl' | 'checkout' | 'confirmation';
 
 export default function PassengerApp() {
   useOnlineStatus();
@@ -19,10 +20,12 @@ export default function PassengerApp() {
   const handleCheckout = (c: CartItem[]) => { setCart(c); setScreen('checkout'); };
   const handleOrderDone = (o: Order) => { setOrder(o); setScreen('confirmation'); };
   const handleNewOrder = () => { setCart([]); setOrder(null); setScreen('menu'); };
+  const handleLogout = () => { setPnr(''); setSeat(''); setCart([]); setOrder(null); setScreen('login'); };
 
   switch (screen) {
     case 'login': return <PnrLogin onLogin={handleLogin} />;
-    case 'menu': return <LiveMenu onCheckout={handleCheckout} onBack={() => setScreen('login')} />;
+    case 'menu': return <LiveMenu onCheckout={handleCheckout} onBack={handleLogout} onFoodOwl={() => setScreen('foodowl')} />;
+    case 'foodowl': return <FoodOwl onCheckout={handleCheckout} onBack={() => setScreen('menu')} />;
     case 'checkout': return <Checkout cart={cart} pnr={pnr} seat={seat} onBack={() => setScreen('menu')} onDone={handleOrderDone} />;
     case 'confirmation': return order ? <OrderConfirmation order={order} onNewOrder={handleNewOrder} /> : null;
   }
