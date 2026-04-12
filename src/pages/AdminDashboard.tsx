@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Package, ClipboardList, Truck, Settings, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Package, ClipboardList, Truck, Train, AlertTriangle, RefreshCw, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -7,12 +7,12 @@ import { useInventory } from '@/hooks/useInventory';
 import { useOrders } from '@/hooks/useOrders';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { NightOwlBanner } from '@/components/NightOwlBanner';
+import { trainRoutes, findTrainByPnr, type TrainRoute } from '@/lib/trainRoutes';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
 import type { Order } from '@/lib/types';
 
 type Tab = 'inventory' | 'orders' | 'restock';
-
-const stations = ['Nagpur', 'Bhopal', 'Jhansi', 'Agra', 'New Delhi'];
 
 export default function AdminDashboard() {
   useOnlineStatus();
@@ -21,6 +21,11 @@ export default function AdminDashboard() {
   const [tab, setTab] = useState<Tab>('inventory');
   const [otpInput, setOtpInput] = useState('');
   const [deliverOrderId, setDeliverOrderId] = useState<string | null>(null);
+
+  // Restock state
+  const [trainInput, setTrainInput] = useState('');
+  const [selectedRoute, setSelectedRoute] = useState<TrainRoute | null>(null);
+  const [currentStationIdx, setCurrentStationIdx] = useState(0);
   const [restockStation, setRestockStation] = useState<string | null>(null);
   const [restockItems, setRestockItems] = useState<Record<string, number>>({});
 
@@ -39,6 +44,18 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleSearchTrain = () => {
+    // Search by train number or PNR
+    const route = trainRoutes.find(r => r.trainNumber === trainInput.trim()) || findTrainByPnr(trainInput.trim());
+    if (route) {
+      setSelectedRoute(route);
+      setCurrentStationIdx(0);
+      toast.success(`Found: ${route.trainName}`);
+    } else {
+      toast.error('Train not found. Try a valid train number or PNR.');
+    }
+  };
+
   const handleRestock = async () => {
     for (const [id, qty] of Object.entries(restockItems)) {
       if (qty > 0) {
@@ -46,7 +63,7 @@ export default function AdminDashboard() {
         if (item) await updateStock(id, item.stock_quantity + qty);
       }
     }
-    toast.success(`Restock from ${restockStation} completed!`);
+    toast.success(`Restock request sent to ${restockStation}!`);
     setRestockStation(null);
     setRestockItems({});
   };
@@ -58,18 +75,19 @@ export default function AdminDashboard() {
   ];
 
   const pendingOrders = orders.filter(o => o.status !== 'delivered');
+  const nextStations = selectedRoute ? selectedRoute.stations.slice(currentStationIdx + 1) : [];
 
   return (
     <div className="min-h-screen bg-background dark flex">
       {/* Sidebar */}
-      <div className="w-64 bg-card border-r border-border p-4 hidden lg:block">
+      <div className="w-64 bg-card border-r border-border p-4 hidden lg:flex flex-col">
         <div className="flex items-center gap-2 mb-8">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <Package className="h-4 w-4 text-primary-foreground" />
           </div>
           <span className="font-heading font-bold text-card-foreground text-lg">RailPantry</span>
         </div>
-        <nav className="space-y-1">
+        <nav className="space-y-1 flex-1">
           {sideItems.map(s => (
             <button
               key={s.id}
@@ -86,6 +104,11 @@ export default function AdminDashboard() {
             </button>
           ))}
         </nav>
+        <Link to="/">
+          <Button variant="ghost" className="w-full text-muted-foreground hover:text-foreground mt-4">
+            <LogOut className="mr-2 h-4 w-4" /> Logout
+          </Button>
+        </Link>
       </div>
 
       {/* Mobile tab bar */}
@@ -102,6 +125,10 @@ export default function AdminDashboard() {
             {s.label.split(' ')[0]}
           </button>
         ))}
+        <Link to="/" className="flex-1 flex flex-col items-center gap-1 py-3 text-xs text-muted-foreground">
+          <LogOut className="h-5 w-5" />
+          Logout
+        </Link>
       </div>
 
       {/* Main */}
@@ -237,23 +264,124 @@ export default function AdminDashboard() {
         {tab === 'restock' && (
           <div>
             <h1 className="font-heading text-2xl font-bold text-foreground mb-2">Station Supply & Restock</h1>
-            <p className="text-muted-foreground text-sm mb-6">Request items from the next station's base kitchen.</p>
+            <p className="text-muted-foreground text-sm mb-6">Enter a train number or PNR to find the route, then request supplies from upcoming stations.</p>
 
-            {!restockStation ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {stations.map(station => (
-                  <button
-                    key={station}
-                    onClick={() => setRestockStation(station)}
-                    className="bg-card border border-border rounded-xl p-6 text-left hover:border-primary transition-colors"
-                  >
-                    <Truck className="h-8 w-8 text-primary mb-3" />
-                    <h3 className="font-heading font-bold text-card-foreground text-lg">{station}</h3>
-                    <p className="text-sm text-muted-foreground">Base Kitchen Hub</p>
-                  </button>
-                ))}
+            {/* Train Search */}
+            {!selectedRoute && (
+              <div className="bg-card border border-border rounded-xl p-6 mb-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Train className="h-5 w-5 text-primary" />
+                  <h2 className="font-heading font-semibold text-card-foreground">Find Train Route</h2>
+                </div>
+                <div className="flex gap-3">
+                  <Input
+                    value={trainInput}
+                    onChange={e => setTrainInput(e.target.value)}
+                    placeholder="Enter Train No. (e.g. 12301) or 10-digit PNR"
+                    className="flex-1"
+                  />
+                  <Button onClick={handleSearchTrain} className="bg-primary text-primary-foreground font-heading font-bold">
+                    Search
+                  </Button>
+                </div>
+                <div className="mt-4">
+                  <p className="text-xs text-muted-foreground mb-2">Quick select:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {trainRoutes.map(r => (
+                      <button
+                        key={r.trainNumber}
+                        onClick={() => { setSelectedRoute(r); setCurrentStationIdx(0); }}
+                        className="text-xs bg-secondary text-secondary-foreground px-3 py-1.5 rounded-lg hover:bg-secondary/80 transition-colors"
+                      >
+                        {r.trainNumber} – {r.trainName.split('(')[0].trim()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
-            ) : (
+            )}
+
+            {/* Route Display */}
+            {selectedRoute && !restockStation && (
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                  <Button variant="outline" onClick={() => { setSelectedRoute(null); setTrainInput(''); }}>← Back</Button>
+                  <div>
+                    <h2 className="font-heading font-bold text-foreground text-lg">{selectedRoute.trainName}</h2>
+                    <p className="text-xs text-muted-foreground">Train #{selectedRoute.trainNumber}</p>
+                  </div>
+                </div>
+
+                {/* Current Station Selector */}
+                <div className="bg-card border border-border rounded-xl p-4 mb-6">
+                  <p className="text-sm text-muted-foreground mb-2">Select current station (where the train is now):</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedRoute.stations.map((station, idx) => (
+                      <button
+                        key={station}
+                        onClick={() => setCurrentStationIdx(idx)}
+                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          currentStationIdx === idx
+                            ? 'bg-primary text-primary-foreground'
+                            : idx < currentStationIdx
+                            ? 'bg-muted text-muted-foreground line-through'
+                            : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                        }`}
+                      >
+                        {station}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Route Visualization */}
+                <div className="bg-card border border-border rounded-xl p-4 mb-6">
+                  <p className="text-sm font-heading font-semibold text-card-foreground mb-3">Route Map</p>
+                  <div className="flex items-center overflow-x-auto gap-1 pb-2">
+                    {selectedRoute.stations.map((station, idx) => (
+                      <div key={station} className="flex items-center shrink-0">
+                        <div className="flex flex-col items-center">
+                          <div className={`w-4 h-4 rounded-full border-2 ${
+                            idx < currentStationIdx ? 'bg-muted border-muted-foreground' :
+                            idx === currentStationIdx ? 'bg-primary border-primary animate-pulse' :
+                            'bg-secondary border-border'
+                          }`} />
+                          <span className={`text-[10px] mt-1 max-w-[60px] text-center leading-tight ${
+                            idx === currentStationIdx ? 'text-primary font-bold' : 'text-muted-foreground'
+                          }`}>{station}</span>
+                        </div>
+                        {idx < selectedRoute.stations.length - 1 && (
+                          <div className={`w-8 h-0.5 ${idx < currentStationIdx ? 'bg-muted-foreground' : 'bg-border'}`} />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Next Stations to Restock */}
+                <h3 className="font-heading font-semibold text-foreground mb-3">Upcoming Stations</h3>
+                {nextStations.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">No upcoming stations. This is the last stop.</p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {nextStations.map((station, i) => (
+                      <button
+                        key={station}
+                        onClick={() => setRestockStation(station)}
+                        className="bg-card border border-border rounded-xl p-6 text-left hover:border-primary transition-colors"
+                      >
+                        <Truck className="h-8 w-8 text-primary mb-3" />
+                        <h3 className="font-heading font-bold text-card-foreground text-lg">{station}</h3>
+                        <p className="text-sm text-muted-foreground">Base Kitchen Hub · Stop #{currentStationIdx + i + 2}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Restock Form */}
+            {selectedRoute && restockStation && (
               <div>
                 <div className="flex items-center gap-3 mb-6">
                   <Button variant="outline" onClick={() => setRestockStation(null)}>← Back</Button>

@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Utensils, ArrowRight } from 'lucide-react';
+import { Utensils, ArrowRight, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Link } from 'react-router-dom';
 
 interface PnrLoginProps {
   onLogin: (pnr: string, seat: string) => void;
@@ -53,6 +54,14 @@ export function PnrLogin({ onLogin }: PnrLoginProps) {
         >
           CONTINUE TO MENU <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
+
+        <div className="pt-2">
+          <Link to="/admin" className="block">
+            <Button variant="ghost" className="w-full text-primary-foreground/60 hover:text-primary-foreground hover:bg-primary-foreground/10 text-sm">
+              <Shield className="mr-2 h-4 w-4" /> Admin Login →
+            </Button>
+          </Link>
+        </div>
       </div>
     </div>
   );
