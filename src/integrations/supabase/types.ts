@@ -14,7 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      inventory: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          image_url: string | null
+          name: string
+          price: number
+          stock_quantity: number
+          threshold: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name: string
+          price?: number
+          stock_quantity?: number
+          threshold?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name?: string
+          price?: number
+          stock_quantity?: number
+          threshold?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      orders: {
+        Row: {
+          coach_seat: string
+          created_at: string
+          id: string
+          items: Json
+          otp: string
+          pnr_number: string
+          status: string
+          total_price: number
+          updated_at: string
+        }
+        Insert: {
+          coach_seat: string
+          created_at?: string
+          id?: string
+          items?: Json
+          otp: string
+          pnr_number: string
+          status?: string
+          total_price?: number
+          updated_at?: string
+        }
+        Update: {
+          coach_seat?: string
+          created_at?: string
+          id?: string
+          items?: Json
+          otp?: string
+          pnr_number?: string
+          status?: string
+          total_price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
