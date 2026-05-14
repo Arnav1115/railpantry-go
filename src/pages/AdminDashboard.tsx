@@ -240,7 +240,7 @@ export default function AdminDashboard() {
                               value={otpInput}
                               onChange={e => setOtpInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
                               placeholder="Enter OTP"
-                              className="w-28 h-12 text-lg text-center tracking-widest"
+                              className="w-28 h-12 text-lg text-center tracking-widest bg-gray-200 text-gray-900 border-gray-400 placeholder:text-gray-500 font-bold"
                             />
                             <Button onClick={() => confirmOtp(order)} className="bg-success text-success-foreground font-heading font-bold h-12">
                               Verify

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ShoppingCart, Plus, Minus, ArrowLeft, Moon, LogOut } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, ArrowLeft, Moon, LogOut, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { NightOwlBanner } from '@/components/NightOwlBanner';
@@ -11,11 +11,12 @@ interface LiveMenuProps {
   onCheckout: (cart: CartItem[]) => void;
   onBack: () => void;
   onFoodOwl: () => void;
+  onAI: () => void;
 }
 
 const categories = ['All Items', 'Meals', 'Snacks', 'Beverages'];
 
-export function LiveMenu({ onCheckout, onBack, onFoodOwl }: LiveMenuProps) {
+export function LiveMenu({ onCheckout, onBack, onFoodOwl, onAI }: LiveMenuProps) {
   const { items, loading } = useInventory();
   const [activeCategory, setActiveCategory] = useState('All Items');
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -151,6 +152,13 @@ export function LiveMenu({ onCheckout, onBack, onFoodOwl }: LiveMenuProps) {
           </Button>
         </div>
       )}
+      {/* AI Assistant FAB */}
+      <button
+        onClick={onAI}
+        className={`fixed right-4 ${cartCount > 0 ? 'bottom-20' : 'bottom-4'} z-50 bg-primary text-primary-foreground p-4 rounded-full shadow-lg flex items-center justify-center hover:bg-primary/90 transition-transform hover:scale-105`}
+      >
+        <Bot className="h-6 w-6" />
+      </button>
     </div>
   );
 }
